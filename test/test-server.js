@@ -13,6 +13,63 @@ const should = chai.should();
 // see: https://github.com/chaijs/chai-http
 chai.use(chaiHttp);
 
+describe('Recipe List', function(){
+  before(function(){
+    return runServer();
+  });
+
+  after(function(){
+    return closeServer()
+  });
+
+  it('should list recipes on get', function (){
+    return chai.request(app)
+    .get('/recipes')
+    .then(function(res){
+      res.should.have.status(200);
+      res.should.be.json;
+      res.body.should.be.a('array');
+      res.body.length.should.be.at.least(1);
+      const things = ['id', 'name', 'ingredients'];
+      res.body.forEach(function(item){
+        item.should.be.a('object');
+        item.should.include.keys(things);
+      });
+    });
+  });
+
+  it ('should create recipe on PUSH', function(){
+    const newRecipe = {name: 'coffee', ingredients: ['water','beans','cream']};
+    return chai.request(app)
+      .post('/recipes')
+      .send(newRecipe)
+      .then(function(res){
+        res.should.have.status(201);
+        res.body.should.include.keys('id', 'name', 'ingredients');
+        res.should.be.json;
+        res.body.id.should.not.be.null;
+        res.body.should.deep.equal(Object.assign(newRecipe, {id: res.body.id}));
+      })
+  });
+
+  it ('should update recipe on POST', function(){
+        
+    const recipeUpdate = {name: 'coffee', ingredients: ['water','beans','sugar']};
+    return chai.request(app)
+        .get('/recipes')
+        .then(function(res){
+          recipeUpdate.id = res.body[0].id;
+          return chai.request(app)
+          .put(`/recipes/${recipeUpdate.id}`)
+          .send(recipeUpdate);
+        })
+      .then(function(res) {
+        res.should.have.status(204);
+      }
+  )
+});
+})
+
 
 describe('Shopping List', function() {
 
@@ -62,6 +119,7 @@ describe('Shopping List', function() {
       });
   });
 
+  
   // test strategy:
   //  1. make a POST request with data for a new item
   //  2. inspect response object and prove it has right
@@ -82,7 +140,6 @@ describe('Shopping List', function() {
         res.body.should.deep.equal(Object.assign(newItem, {id: res.body.id}));
       });
   });
-
   // test strategy:
   //  1. initialize some update data (we won't have an `id` yet)
   //  2. make a GET request so we can get an item to update
@@ -138,3 +195,5 @@ describe('Shopping List', function() {
       });
   });
 });
+
+
